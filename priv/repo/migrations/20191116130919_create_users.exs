@@ -4,12 +4,15 @@ defmodule Macchinista.Repo.Migrations.CreateUsers do
   def change do
     create table(:users) do
       add :username, :string
+      add :email, :string
       add :password_hash, :string
       add :access_token, :string
       add :role, :string
 
       timestamps()
     end
+
+    create unique_index(:users, :email)
 
   end
 end

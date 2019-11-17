@@ -6,7 +6,7 @@ defmodule Macchinista.Accounts do
   import Ecto.Query, warn: false
   alias Macchinista.Repo
 
-  alias Macchinista.Accounts.User
+  alias Macchinista.Accounts.{ User, Session }
 
   @doc """
   Returns the list of users.
@@ -37,6 +37,8 @@ defmodule Macchinista.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  def get_user_by_email(email), do: Repo.get_by(User, email: email)
+
   @doc """
   Creates a user.
 
@@ -51,7 +53,7 @@ defmodule Macchinista.Accounts do
   """
   def create_user(attrs \\ %{}) do
     %User{}
-    |> User.changeset(attrs)
+    |> User.create_changeset(attrs)
     |> Repo.insert()
   end
 
@@ -69,7 +71,7 @@ defmodule Macchinista.Accounts do
   """
   def update_user(%User{} = user, attrs) do
     user
-    |> User.changeset(attrs)
+    |> User.create_changeset(attrs)
     |> Repo.update()
   end
 
@@ -99,6 +101,32 @@ defmodule Macchinista.Accounts do
 
   """
   def change_user(%User{} = user) do
-    User.changeset(user, %{})
+    User.create_changeset(user, %{})
+  end
+
+  def create_session(user) do
+    user
+    |> Session.new!
+    |> Session.create_changeset(%{user_id: user.id, active: true})
+    |> Repo.insert()
+  end
+
+  def inactivate_session(%Session{id: id}) do
+    Session
+    |> Repo.get(id)
+    |> Session.create_changeset([active: false])
+    |> Repo.update()
+  end
+
+  def login(%{email: email, password: password}) do
+    with \
+      user <- get_user_by_email(email), \
+      true <- Bcrypt.verify_pass(password, user.password_hash) do
+      create_session(user)
+    else
+      {:error, _} = response -> response
+      false -> {:error, "Invalid credentials"}
+      _ -> {:error, "Unknown Error"}
+    end
   end
 end
