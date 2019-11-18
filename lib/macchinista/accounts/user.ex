@@ -3,6 +3,7 @@ defmodule Macchinista.Accounts.User do
   import Ecto.Changeset
   alias Macchinista.Accounts.PasswordHasher
 
+  @primary_key {:id, Ecto.UUID, autogenerate: true}
   @type changeset :: %Ecto.Changeset{data: %__MODULE__{}}
 
   schema "users" do
