@@ -14,6 +14,16 @@ defmodule Macchinista.Boards.Task do
     timestamps()
   end
 
+  def get_name(%__MODULE__{ name: name }), do: name
+
+  def set_name(%__MODULE__{} = task, name),
+    do: %{ task | name: name }
+
+  def get_checked(%__MODULE__{ checked: checked }), do: checked
+
+  def set_checked(%__MODULE__{} = task, checked),
+    do: %{ task | checked: checked }
+
   def create_changeset(task, attrs) do
     task
     |> cast(attrs, [:name, :checked])
