@@ -52,9 +52,19 @@ defmodule Macchinista.Accounts do
 
   """
   def create_user(attrs \\ %{}) do
-    %User{}
-    |> User.create_changeset(attrs)
-    |> Repo.insert()
+    Repo.transaction fn ->
+      user =
+        attrs
+        |> User.create_changeset()
+        |> Repo.insert()
+      case user do
+        {:ok, user } ->
+          #create_log(user, :user, :insert, :success, user)
+          {:ok, user}
+        {:error, _} ->
+          Repo.rollback(:internal)
+      end
+    end
   end
 
   @doc """
@@ -71,7 +81,7 @@ defmodule Macchinista.Accounts do
   """
   def update_user(%User{} = user, attrs) do
     user
-    |> User.create_changeset(attrs)
+    |> User.update_changeset(attrs)
     |> Repo.update()
   end
 
@@ -91,30 +101,17 @@ defmodule Macchinista.Accounts do
     Repo.delete(user)
   end
 
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking user changes.
-
-  ## Examples
-
-      iex> change_user(user)
-      %Ecto.Changeset{source: %User{}}
-
-  """
-  def change_user(%User{} = user) do
-    User.create_changeset(user, %{})
-  end
-
   def create_session(user) do
     user
-    |> Session.new!
+    |> Session.create!
     |> Session.create_changeset(%{user_id: user.id, active: true})
     |> Repo.insert()
   end
 
   def inactivate_session(%Session{id: id}) do
     Session
-    |> Repo.get(id)
-    |> Session.create_changeset([active: false])
+    |> Repo.get!(id)
+    |> Session.inactivate()
     |> Repo.update()
   end
 
