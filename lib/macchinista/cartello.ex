@@ -693,7 +693,7 @@ defmodule Macchinista.Cartello do
     Repo.transaction(fn ->
       result =
         card
-        |> Card.shelve()
+        |> Card.set_shelve(true)
         |> Repo.update()
         
       case result do
