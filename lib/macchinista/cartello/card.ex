@@ -17,6 +17,7 @@ defmodule Macchinista.Cartello.Card do
   @type parent :: String.t
   @type cards :: [Card.t]
   @type card_list :: CardList.t
+  @type shelve :: boolean()
   @type tags :: [Tag.t]
   @type t :: %__MODULE__{
     name: name,
@@ -26,6 +27,7 @@ defmodule Macchinista.Cartello.Card do
     cards: cards,
     card_list: card_list,
     tags: tags,
+    shelve: shelve,
     inserted_at: NaiveDateTime.t,
     updated_at: NaiveDateTime.t
   }
@@ -109,6 +111,18 @@ defmodule Macchinista.Cartello.Card do
     card
     |> change()
     |> put_change(:order, order)
+  end
+  
+  @spec get_shelve(t) :: shelve
+  def get_shelve(%__MODULE__{ shelve: shelve }), do: shelve
+
+  @spec set_shelve(type_or_changeset, shelve) :: changeset
+  def set_shelve(%Ecto.Changeset{data: %__MODULE__{}} = changeset, shelve),
+    do: put_change(changeset, :shelve, shelve)
+  def set_order(card, shelve) do
+    card
+    |> change()
+    |> put_change(:shelve, shelve)
   end
 
   @spec get_last_nested_card(t) :: t
