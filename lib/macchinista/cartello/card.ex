@@ -52,6 +52,7 @@ defmodule Macchinista.Cartello.Card do
     field :name, :string
     field :description, :string
     field :order, :integer
+    field :shelve, :boolean
     field :parent, :string
     has_many :cards, __MODULE__
     has_many :checklists, Checklist
@@ -112,14 +113,14 @@ defmodule Macchinista.Cartello.Card do
     |> change()
     |> put_change(:order, order)
   end
-  
+
   @spec get_shelve(t) :: shelve
   def get_shelve(%__MODULE__{ shelve: shelve }), do: shelve
 
   @spec set_shelve(type_or_changeset, shelve) :: changeset
   def set_shelve(%Ecto.Changeset{data: %__MODULE__{}} = changeset, shelve),
     do: put_change(changeset, :shelve, shelve)
-  def set_order(card, shelve) do
+  def set_shelve(%__MODULE__{} = card, shelve) do
     card
     |> change()
     |> put_change(:shelve, shelve)

@@ -408,7 +408,7 @@ defmodule Macchinista.Cartello do
         from_cards
         |> Kernel.++(to_cards)
         |> Kernel.++([card])
-        |> Enum.map(updating_cards, &Repo.update/1)
+        |> Enum.map(&Repo.update/1)
 
       case Enum.find(cards, fn { status, _ } -> status == :error end) do
         nil ->
@@ -434,7 +434,7 @@ defmodule Macchinista.Cartello do
 
       card = Card.set_order(card, order)
       cards =
-        card_lists
+        card_list
         |> CardList.get_cards()
         |> Enum.map(&Card.set_order(&1, &1.order + 1))
 
@@ -559,10 +559,10 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec merge_cards([Card.t], _user) ::
+  @spec merge_cards([Card.t], User.t) ::
     {:ok, [Card.t]}
     | {:error, atom() | String.t}
-  def merge_cards(cards, _user) do
+  def merge_cards(cards, user) do
     Repo.transaction(fn ->
       list =
         cards
@@ -580,7 +580,7 @@ defmodule Macchinista.Cartello do
       case list_count do
         1 ->
           [card_list] = list
-          {:ok, parent}= create_card([card_list: card_list, order: order])
+          {:ok, parent} = create_card([card_list: card_list, order: order], user)
 
           {updated_cards, _} =
             cards
@@ -648,7 +648,7 @@ defmodule Macchinista.Cartello do
       end
     end)
   end
-  
+
   def flatten_card(%Card{cards: cards, card_list: card_list, order: order, parent: parent_id} = card, _user) do
     Repo.transaction(fn ->
       count = Enum.count(cards)
@@ -685,7 +685,7 @@ defmodule Macchinista.Cartello do
       end
     end)
   end
-  
+
   @spec shelve_card(Card.t, User.t) ::
     {:ok, Card.t}
     | {:error, atom() | String.t}
@@ -695,7 +695,7 @@ defmodule Macchinista.Cartello do
         card
         |> Card.set_shelve(true)
         |> Repo.update()
-        
+
       case result do
         {:ok, card} = result ->
           result
