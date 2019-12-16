@@ -685,4 +685,24 @@ defmodule Macchinista.Cartello do
       end
     end)
   end
+  
+  @spec shelve_card(Card.t, User.t) ::
+    {:ok, Card.t}
+    | {:error, atom() | String.t}
+  def shelve_card(card, _user) do
+    Repo.transaction(fn ->
+      result =
+        card
+        |> Card.shelve()
+        |> Repo.update()
+        
+      case result do
+        {:ok, card} = result ->
+          result
+        {:error, _changeset} ->
+          Repo.rollback(:internal)
+          {:error, :internal}
+      end
+    end)
+  end
 end
