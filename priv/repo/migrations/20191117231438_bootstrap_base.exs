@@ -7,7 +7,8 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       add :name, :string, default: "Untitled Board"
       add :order, :integer, null: false
       add :background, :string
-      add :owner, references(:users, type: :uuid)
+      add :shelve, :boolean, default: :false
+      add :user_id, references(:users, type: :uuid)
 
       timestamps()
     end
@@ -17,8 +18,7 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       add :id, :uuid, primary_key: true
       add :name, :string, default: "Untitled Tag"
       add :color, :string, size: 7
-      add :order, :integer
-      add :board, references(:boards, type: :uuid)
+      add :board_id, references(:boards, type: :uuid)
 
       timestamps()
     end
@@ -38,9 +38,10 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       add :id, :uuid, primary_key: true
       add :name, :string, default: "Untitled Card"
       add :description, :string
+      add :shelve, :boolean, default: :false
       add :order, :integer
-      add :parent, references(:cards)
-      add :card_list, references(:card_lists, type: :uuid)
+      add :parent, references(:cards, type: uuid)
+      add :card_list_id, references(:card_lists, type: :uuid)
 
       timestamps()
     end
@@ -50,22 +51,22 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       add :id, :uuid, primary_key: true
       add :name, :string, default: "Untitled Checklist"
       add :order, :integer
-      add :card, references(:cards, type: :uuid)
+      add :card_id, references(:cards, type: :uuid)
 
       timestamps()
     end
-    create unique_index(:checklists, [:card, :order])
+    create unique_index(:checklists, [:card_id, :order])
 
-    create table(:tasks, primary_key: false) do
+    create table(:quests, primary_key: false) do
       add :id, :uuid, primary_key: true
-      add :name, :string, default: "Untitled Task"
+      add :name, :string, default: "Untitled Quest"
       add :order, :integer
       add :checked, :boolean, default: false
-      add :checklist, references(:checklists, type: :uuid)
+      add :checklist_id, references(:checklists, type: :uuid)
 
       timestamps()
     end
-    create unique_index(:tasks, [:checklist, :order])
+    create unique_index(:quests, [:checklist_id, :order])
 
   end
 end
