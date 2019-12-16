@@ -388,7 +388,7 @@ defmodule Macchinista.Cartello do
         |> CardList.get_last_card()
         |> Card.get_order()
 
-      order = new_position(order, last_order)
+      order = new_position(to_order, last_order)
 
       card = Card.set_order(card, order)
 
