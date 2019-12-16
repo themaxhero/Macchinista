@@ -101,7 +101,7 @@ defmodule Macchinista.Cartello.CardList do
   def get_last_card(card_list) do
     card_list
     |> get_cards()
-    |> List.reverse()
+    |> Enum.reverse()
     |> List.first()
   end
 
