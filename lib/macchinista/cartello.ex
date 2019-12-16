@@ -613,7 +613,7 @@ defmodule Macchinista.Cartello do
   @spec flatten_card(Card.t, User.t) ::
     {:ok, [Card.t]}
     | {:error, atom() | String.t}
-  def flatten_card(%Card{cards: cards, card_list: card_list, order: order} = card, _user) do
+  def flatten_card(%Card{cards: cards, card_list: card_list, order: order, parent: nil} = card, _user) do
     Repo.transaction(fn ->
       count = Enum.count(cards)
 
@@ -631,6 +631,45 @@ defmodule Macchinista.Cartello do
             elem
             |> Card.set_order(count)
             |> Card.set_parent(nil)
+            |> Repo.update()
+
+          {[ card | acc], count + 1}
+          end)
+
+      cards = next_cards ++ cards
+
+      case Enum.find(cards, fn { status, _ } -> status == :error end) do
+        nil ->
+          {:ok, Enum.map(cards, fn { _, card } -> card end)}
+
+        {:error, _changeset} ->
+          Repo.rollback(:internal)
+          {:error, :internal}
+      end
+    end)
+  end
+  @spec flatten_card(Card.t, User.t) ::
+    {:ok, [Card.t]}
+    | {:error, atom() | String.t}
+  def flatten_card(%Card{cards: cards, card_list: card_list, order: order, parent: parent_id} = card, _user) do
+    Repo.transaction(fn ->
+      count = Enum.count(cards)
+
+      next_cards =
+        Card
+        |> Repo.get(parent_id)
+        |> Card.get_cards()
+        |> Enum.filter(fn card -> card.order > order end)
+        |> Enum.map(&Card.set_order(&1, &1.order + count))
+        |> Enum.map(&Repo.update/1)
+
+      { cards, _ } =
+        cards
+        |> Enum.reduce({[], order}, fn elem, {acc, count} ->
+          card =
+            elem
+            |> Card.set_order(count)
+            |> Card.set_parent(parent_id)
             |> Repo.update()
 
           {[ card | acc], count + 1}
