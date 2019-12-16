@@ -648,9 +648,7 @@ defmodule Macchinista.Cartello do
       end
     end)
   end
-  @spec flatten_card(Card.t, User.t) ::
-    {:ok, [Card.t]}
-    | {:error, atom() | String.t}
+  
   def flatten_card(%Card{cards: cards, card_list: card_list, order: order, parent: parent_id} = card, _user) do
     Repo.transaction(fn ->
       count = Enum.count(cards)
