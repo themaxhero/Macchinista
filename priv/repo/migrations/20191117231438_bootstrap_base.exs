@@ -28,7 +28,7 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       add :id, :uuid, primary_key: true
       add :name, :string, default: "Untitled List"
       add :order, :integer
-      add :board, references(:boards, type: :uuid)
+      add :board_id, references(:boards, type: :uuid)
 
       timestamps()
     end
