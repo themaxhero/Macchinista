@@ -12,7 +12,7 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
 
       timestamps()
     end
-    create unique_index(:boards, [:owner, :order])
+    create unique_index(:boards, [:user_id, :order])
 
     create table(:tags, primary_key: false) do
       add :id, :uuid, primary_key: true
@@ -45,7 +45,7 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
 
       timestamps()
     end
-    create unique_index(:cards, [:card_list, :order])
+    create unique_index(:cards, [:card_list_id, :order])
 
     create table(:checklists, primary_key: false) do
       add :id, :uuid, primary_key: true
@@ -67,6 +67,5 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       timestamps()
     end
     create unique_index(:quests, [:checklist_id, :order])
-
   end
 end
