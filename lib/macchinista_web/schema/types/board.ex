@@ -11,6 +11,6 @@ defmodule MacchinistaWeb.Schema.Types.Board do
 
   input_object :board_input do
     field :name, non_null(:string)
-    field :background, non_null(:string)
+    field :background, :string
   end
 end
