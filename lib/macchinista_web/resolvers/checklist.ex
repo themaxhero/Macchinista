@@ -14,11 +14,18 @@ defmodule MacchinistaWeb.Resolvers.Checklist do
     Cartello.create_checklist(args, user)
   end
 
-  def update_checklist(_, args, %{context: %{user_id: user_id}}) do
-    {:ok, checklist} = Cartello.get_checklist(args.id)
+  def update_checklist(_, %{id: id} = args, %{context: %{user_id: user_id}}) do
+    {:ok, checklist} = Cartello.get_checklist(id)
     user = Accounts.get_user!(user_id)
 
     Cartello.update_checklist(checklist, Map.delete(args, :id), user)
+  end
+
+  def delete_checklist(_, %{id: id}, %{context: %{user_id: user_id}}) do
+    {:ok, checklist} = Cartello.get_checklist(id)
+    user = Accounts.get_user!(user_id)
+
+    Cartello.delete_checklist(checklist, user)
   end
 
   def reorder_checklist(_, %{id: id, order: order}, %{context: %{user_id: user_id}}) do

@@ -10,7 +10,22 @@ defmodule MacchinistaWeb.Resolvers.CardList do
 
   def create_card_list(_, args, %{context: %{user_id: user_id}}) do
     user = Accounts.get_user!(user_id)
+
     Cartello.create_card_list(args, user)
+  end
+
+  def update_card_list(_, %{id: id} = args, %{context: %{user_id: user_id}}) do
+    {:ok, card_list} = Cartello.get_card_list(id)
+    user = Accounts.get_user!(user_id)
+
+    Cartello.update_card_list(card_list, Map.delete(args, :id), user)
+  end
+
+  def delete_card_list(_, %{id: id}, %{context: %{user_id: user_id}}) do
+    {:ok, card_list} = Cartello.get_card_list(id)
+    user = Accounts.get_user!(user_id)
+
+    Cartello.delete_card_list(card_list, user)
   end
 
   # def move_card_list(_, args, %{context: %{user_id: user_id}}) do

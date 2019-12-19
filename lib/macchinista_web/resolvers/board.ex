@@ -1,4 +1,5 @@
 defmodule MacchinistaWeb.Resolvers.Board do
+  alias Macchinista.Accounts
   alias Macchinista.Cartello
   alias Macchinista.Cartello.Board
 
@@ -10,9 +11,27 @@ defmodule MacchinistaWeb.Resolvers.Board do
 
   @spec create_board(any, Board.creation_params(), any) ::
           {:error, atom | binary} | {:ok, Macchinista.Cartello.Board.t()}
-  def create_board(_parent, args, %{context: %{user: user}}),
-    do: Cartello.create_board(args, user)
+
+  def create_board(_parent, args, %{context: %{user_id: user_id}}) do
+    user = Accounts.get_user!(user_id)
+
+    Cartello.create_board(args, user)
+  end
 
   def create_board(_parent, _args, _resolution),
     do: {:error, :invalid_parameters}
+
+  def update_board(_, %{id: id} = args, %{context: %{user_id: user_id}}) do
+    {:ok, board} = Cartello.get_board(id)
+    user = Accounts.get_user!(user_id)
+
+    Cartello.update_board(board, Map.delete(args, :id), user)
+  end
+
+  def delete_board(_, %{id: id}, %{context: %{user_id: user_id}}) do
+    {:ok, board} = Cartello.get_board(id)
+    user = Accounts.get_user!(user_id)
+
+    Cartello.delete_board(board, user)
+  end
 end
