@@ -12,4 +12,13 @@ defmodule MacchinistaWeb.Schema.Types.Checklist do
     field :name, :string
     field :card_id, non_null(:id)
   end
+
+  input_object :checklist_update_input do
+    field :id, non_null(:id)
+    field :name, :string
+  end
+
+  input_object :checklist_delete_input do
+    field :id, non_null(:id)
+  end
 end

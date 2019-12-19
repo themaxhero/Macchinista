@@ -4,6 +4,7 @@ defmodule MacchinistaWeb.Schema.Types.Card do
   object :card do
     field :id, :id
     field :name, :string
+    field :description, :string
     field :order, :integer
     field :shelve, :boolean
     field :parent, :card
@@ -17,4 +18,40 @@ defmodule MacchinistaWeb.Schema.Types.Card do
     field :name, :string
     field :card_list_id, non_null(:id)
   end
+
+  input_object :card_update_input do
+    field :id, non_null(:id)
+    field :name, :string
+    field :description, :string
+    field :shelve, :boolean
+    field :parent, :id
+  end
+
+  input_object :card_delete_input do
+    field :id, non_null(:id)
+  end
+
+  input_object :shelve_card do
+    field :id, non_null(:id)
+  end
+
+  input_object :move_card do
+    field :id, non_null(:id)
+    field :parent_id, :id
+    field :card_list_id, :id
+  end
+
+  input_object :reorder_card do
+    field :id, non_null(:id)
+    field :order, non_null(:integer)
+  end
+
+  input_object :merge_cards do
+    field :cards_id, non_null(list_of(:id))
+  end
+
+  input_object :flatten_card do
+    field :id, non_null(:id)
+  end
+
 end

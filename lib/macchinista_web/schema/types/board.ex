@@ -13,4 +13,14 @@ defmodule MacchinistaWeb.Schema.Types.Board do
     field :name, non_null(:string)
     field :background, :string
   end
+
+  input_object :board_update_input do
+    field :id, non_null(:id)
+    field :name, :string
+    field :background, :string
+  end
+
+  input_object :board_delete_input do
+    field :id, non_null(:id)
+  end
 end

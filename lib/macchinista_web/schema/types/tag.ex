@@ -13,4 +13,14 @@ defmodule MacchinistaWeb.Schema.Types.Tag do
     field :color, :string
     field :board_id, non_null(:id)
   end
+
+  input_object :tag_update_input do
+    field :id, non_null(:id)
+    field :name, :string
+    field :color, :string
+  end
+
+  input_object :tag_delete_input do
+    field :id, non_null(:id)
+  end
 end

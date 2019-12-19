@@ -12,4 +12,14 @@ defmodule MacchinistaWeb.Schema.Types.Quest do
     field :name, :string
     field :checklist_id, non_null(:id)
   end
+
+  input_object :quest_update_input do
+    field :id, non_null(:id)
+    field :name, :string
+    field :checked, :boolean
+  end
+
+  input_object :quest_delete_input do
+    field :id, non_null(:id)
+  end
 end
