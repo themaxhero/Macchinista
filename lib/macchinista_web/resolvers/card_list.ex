@@ -1,4 +1,5 @@
 defmodule MacchinistaWeb.Resolvers.CardList do
+  alias Macchinista.Accounts
   alias Macchinista.Cartello
 
   def card_lists(_, _, _),
@@ -7,6 +8,13 @@ defmodule MacchinistaWeb.Resolvers.CardList do
   def card_list(_, %{id: id}, _),
     do: Cartello.get_card_list(id)
 
-  def create_card_list(_, args, %{context: %{user: user}}),
-    do: Cartello.create_card_list(args, user)
+  def create_card_list(_, args, %{context: %{user_id: user_id}}) do
+    user = Accounts.get_user!(user_id)
+    Cartello.create_card_list(args, user)
+  end
+
+  # def move_card_list(_, args, %{context: %{user_id: user_id}}) do
+  #   user = Cartello.get_user!(user_id)
+  #   Cartello.move_card_list()
+  # end
 end

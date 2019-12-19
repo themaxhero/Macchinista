@@ -131,15 +131,15 @@ defmodule MacchinistaWeb.Schema do
       resolve(&CardResolver.flatten_card/3)
     end
 
-    field :move_card_list, :card_list do
-      arg(:input, non_null(:move_card_list_input))
-      resolve(&CardListResolver.move_card_list/3)
-    end
+    # field :move_card_list, :card_list do
+    #   arg(:input, non_null(:move_card_list_input))
+    #   resolve(&CardListResolver.move_card_list/3)
+    # end
 
-    field :reorder_card_list, :card_list do
-      arg(:input, non_null(:reorder_card_list_input))
-      resolve(&CardListResolver.reorder_card_list/3)
-    end
+    # field :reorder_card_list, :card_list do
+    #   arg(:input, non_null(:reorder_card_list_input))
+    #   resolve(&CardListResolver.reorder_card_list/3)
+    # end
 
     field :reorder_quest, :quest do
       arg(:input, non_null(:reorder_quest_input))

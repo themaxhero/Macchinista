@@ -21,4 +21,9 @@ defmodule MacchinistaWeb.Schema.Types.Checklist do
   input_object :checklist_delete_input do
     field :id, non_null(:id)
   end
+
+  input_object :reorder_checklist_input do
+    field :id, non_null(:id)
+    field :order, non_null(:integer)
+  end
 end

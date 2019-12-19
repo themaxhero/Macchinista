@@ -31,27 +31,26 @@ defmodule MacchinistaWeb.Schema.Types.Card do
     field :id, non_null(:id)
   end
 
-  input_object :shelve_card do
+  input_object :shelve_card_input do
     field :id, non_null(:id)
   end
 
-  input_object :move_card do
+  input_object :move_card_input do
     field :id, non_null(:id)
     field :parent_id, :id
     field :card_list_id, :id
   end
 
-  input_object :reorder_card do
+  input_object :reorder_card_input do
     field :id, non_null(:id)
     field :order, non_null(:integer)
   end
 
-  input_object :merge_cards do
+  input_object :merge_cards_input do
     field :cards_id, non_null(list_of(:id))
   end
 
-  input_object :flatten_card do
+  input_object :flatten_card_input do
     field :id, non_null(:id)
   end
-
 end

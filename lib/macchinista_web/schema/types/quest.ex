@@ -22,4 +22,9 @@ defmodule MacchinistaWeb.Schema.Types.Quest do
   input_object :quest_delete_input do
     field :id, non_null(:id)
   end
+
+  input_object :reorder_quest_input do
+    field :id, non_null(:id)
+    field :order, non_null(:integer)
+  end
 end

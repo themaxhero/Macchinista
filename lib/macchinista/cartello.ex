@@ -28,7 +28,9 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec get_board(Board.id()) :: Board.t()
+  @spec get_board(Board.id()) ::
+    {:ok, Board.t()}
+    | {:error, atom() | String.t()}
   def get_board(id) when is_binary(id),
     do: Repo.get(Board, id)
 
@@ -118,7 +120,9 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec get_card_list(CardList.id()) :: CardList.t()
+  @spec get_card_list(CardList.id()) ::
+    { :ok, CardList.t() }
+    | { :error, atom() | String.t() }
   def get_card_list(id) when is_binary(id),
     do: Repo.get(CardList, id)
 
@@ -182,7 +186,9 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec get_card(Card.id()) :: Card.t()
+  @spec get_card(Card.id()) ::
+    {:ok, Card.t()}
+    | {:error, atom() | String.t()}
   def get_card(id) when is_binary(id),
     do: Repo.get(Card, id)
 
@@ -244,7 +250,9 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec get_checklist(Checklist.id()) :: Checklist.t()
+  @spec get_checklist(Checklist.id()) ::
+    {:ok, Checklist.t()}
+    | {:error, atom() | String.t()}
   def get_checklist(id) when is_binary(id),
     do: Repo.get(Checklist, id)
 
@@ -306,7 +314,9 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec get_tag(Tag.id()) :: Tag.t()
+  @spec get_tag(Tag.id()) ::
+    {:ok, Tag.t()}
+    | {:error, atom() | String.t()}
   def get_tag(id) when is_binary(id),
     do: Repo.get(Tag, id)
 
@@ -368,7 +378,9 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  @spec get_quest(Quest.id()) :: Quest.t()
+  @spec get_quest(Quest.id()) ::
+    {:ok, Quest.t()}
+    | {:error, atom() | String.t()}
   def get_quest(id) when is_binary(id),
     do: Repo.get(Quest, id)
 
