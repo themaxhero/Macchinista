@@ -8,7 +8,8 @@
 use Mix.Config
 
 config :macchinista,
-  ecto_repos: [Macchinista.Repo]
+  ecto_repos: [Macchinista.Repo],
+  token_secret: "TOPSECRETKEY"
 
 # Configures the endpoint
 config :macchinista, MacchinistaWeb.Endpoint,

@@ -20,7 +20,7 @@ defmodule Macchinista.MixProject do
   def application do
     [
       mod: {Macchinista.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:guardian, :logger, :runtime_tools]
     ]
   end
 
@@ -45,7 +45,8 @@ defmodule Macchinista.MixProject do
       {:absinthe_plug, "~> 1.4.5"},
       {:absinthe_ecto, "~> 0.1.3"},
       {:bcrypt_elixir, "~> 0.12"},
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:guardian, "~> 2.0"}
     ]
   end
 

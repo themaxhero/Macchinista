@@ -9,6 +9,7 @@ defmodule Macchinista.Cartello.Card do
   # -----------------------------------------------------------------------------
 
   @primary_key {:id, Ecto.UUID, autogenerate: true}
+  @foreign_key_type Ecto.UUID
   @type changeset :: %Ecto.Changeset{data: %__MODULE__{}}
 
   @type name :: String.t()
@@ -48,9 +49,9 @@ defmodule Macchinista.Cartello.Card do
           optional(:parent) => parent
         }
 
-  @creation_fields ~w/name parent/a
+  @creation_fields ~w/name order/a
   @update_fields ~w/name description parent/a
-  @required_fields ~w//a
+  @required_fields ~w/card_list/a
 
   schema "cards" do
     field :name, :string
@@ -128,6 +129,7 @@ defmodule Macchinista.Cartello.Card do
   @spec set_shelve(type_or_changeset, shelve) :: changeset
   def set_shelve(%Ecto.Changeset{data: %__MODULE__{}} = changeset, shelve),
     do: put_change(changeset, :shelve, shelve)
+
   def set_shelve(%__MODULE__{} = card, shelve) do
     card
     |> change()
@@ -166,9 +168,13 @@ defmodule Macchinista.Cartello.Card do
   # -----------------------------------------------------------------------------
 
   @spec create_changeset(creation_params) :: changeset
-  def create_changeset(attrs) do
+  def create_changeset(%{card_list: card_list} = attrs) do
     %__MODULE__{}
+    |> Macchinista.Repo.preload(:cards)
+    |> Macchinista.Repo.preload(:checklists)
+    |> Macchinista.Repo.preload(:tags)
     |> cast(attrs, @creation_fields)
+    |> put_assoc(:card_list, card_list)
     |> validate_required(@required_fields)
   end
 

@@ -5,40 +5,41 @@ defmodule Macchinista.Accounts.User do
   alias Ecto.Changeset
   alias Macchinista.Cartello.Board
 
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # Setup
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
 
   @primary_key {:id, Ecto.UUID, autogenerate: true}
+  @foreign_key_type Ecto.UUID
   @type changeset :: %Changeset{data: %__MODULE__{}}
-  @type username :: String.t
-  @type email :: String.t
-  @type password_hash :: String.t
-  @type access_token :: String.t
-  @type role :: String.t
-  @type boards :: [Board.t]
+  @type username :: String.t()
+  @type email :: String.t()
+  @type password_hash :: String.t()
+  @type access_token :: String.t()
+  @type role :: String.t()
+  @type boards :: [Board.t()]
   @type t :: %__MODULE__{
-    username: username,
-    email: email,
-    password_hash: password_hash,
-    access_token: access_token,
-    role: role
-  }
+          username: username,
+          email: email,
+          password_hash: password_hash,
+          access_token: access_token,
+          role: role
+        }
   @type type_or_changeset :: t | changeset
 
   @type creation_params :: %{
-    username: username,
-    email: email,
-    password: String.t,
-    password_confirmation: String.t,
-    boards: boards
-  }
+          username: username,
+          email: email,
+          password: String.t(),
+          password_confirmation: String.t(),
+          boards: boards
+        }
 
   @type update_params :: %{
-    optional(:email) => email,
-    optional(:password) => String.t,
-    optional(:password_confirmation) => String.t
-  }
+          optional(:email) => email,
+          optional(:password) => String.t(),
+          optional(:password_confirmation) => String.t()
+        }
 
   @creation_fields ~w/username email password password_confirmation role/a
   @update_fields ~w/email password password_confirmation/a
@@ -57,17 +58,18 @@ defmodule Macchinista.Accounts.User do
     timestamps()
   end
 
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # Getters and Setters
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
 
   @spec get_username(t) :: username
   def get_username(%__MODULE__{username: username}),
     do: username
 
   @spec set_username(type_or_changeset, username) :: changeset
-  def set_username(%Ecto.Changeset{ data: %__MODULE__{} } = changeset, username),
+  def set_username(%Ecto.Changeset{data: %__MODULE__{}} = changeset, username),
     do: put_change(changeset, :username, username)
+
   def set_username(%__MODULE__{} = user, username) do
     user
     |> change()
@@ -79,8 +81,9 @@ defmodule Macchinista.Accounts.User do
     do: email
 
   @spec set_email(type_or_changeset, email) :: changeset
-  def set_email(%Ecto.Changeset{ data: %__MODULE__{} } = changeset, email),
+  def set_email(%Ecto.Changeset{data: %__MODULE__{}} = changeset, email),
     do: put_change(changeset, :email, email)
+
   def set_email(%__MODULE__{} = user, email) do
     user
     |> change()
@@ -92,8 +95,9 @@ defmodule Macchinista.Accounts.User do
     do: password_hash
 
   @spec set_password_hash(type_or_changeset, password_hash) :: changeset
-  def set_password_hash(%Ecto.Changeset{ data: %__MODULE__{} } = changeset, password_hash),
+  def set_password_hash(%Ecto.Changeset{data: %__MODULE__{}} = changeset, password_hash),
     do: put_change(changeset, :password_hash, password_hash)
+
   def set_password_hash(%__MODULE__{} = user, password_hash) do
     user
     |> change()
@@ -105,8 +109,9 @@ defmodule Macchinista.Accounts.User do
     do: access_token
 
   @spec set_access_token(type_or_changeset, access_token) :: changeset
-  def set_access_token(%Ecto.Changeset{ data: %__MODULE__{} } = changeset, access_token),
+  def set_access_token(%Ecto.Changeset{data: %__MODULE__{}} = changeset, access_token),
     do: put_change(changeset, :access_token, access_token)
+
   def set_access_token(%__MODULE__{} = user, e) do
     user
     |> change()
@@ -118,17 +123,18 @@ defmodule Macchinista.Accounts.User do
     do: role
 
   @spec set_role(type_or_changeset, role) :: changeset
-  def set_role(%Ecto.Changeset{ data: %__MODULE__{} } = changeset, role),
+  def set_role(%Ecto.Changeset{data: %__MODULE__{}} = changeset, role),
     do: put_change(changeset, :role, role)
+
   def set_role(%__MODULE__{} = user, role) do
     user
     |> change()
     |> put_change(:role, role)
   end
 
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   #
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   @spec put_password_hash(changeset) :: changeset
   def put_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset) do
     update_changeset = &Ecto.Changeset.put_change(changeset, :password_hash, &1)
@@ -138,21 +144,22 @@ defmodule Macchinista.Accounts.User do
     |> update_changeset.()
   end
 
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # Validations
-  #-----------------------------------------------------------------------------
-  @spec validate_email(:email, String.t) :: [{:email, String.t}]
+  # -----------------------------------------------------------------------------
+  @spec validate_email(:email, String.t()) :: [{:email, String.t()}]
   def validate_email(:email, value) do
-    if String.match?(value, ~r/\S+@\S+\.\S+/),
-      do: [], else: [ email: "Invalid Email Format" ]
+    if String.match?(value, ~r/\S+@\S+\.\S+/), do: [], else: [email: "Invalid Email Format"]
   end
-  #-----------------------------------------------------------------------------
+
+  # -----------------------------------------------------------------------------
   # Changesets
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
 
   @spec create_changeset(creation_params) :: changeset
   def create_changeset(attrs) do
     %__MODULE__{}
+    |> Macchinista.Repo.preload(:boards)
     |> cast(attrs, @creation_fields)
     |> validate_required(@required_fields)
     |> validate_change(:email, &validate_email/2)
@@ -165,6 +172,7 @@ defmodule Macchinista.Accounts.User do
   @spec update_changeset(t, creation_params) :: changeset
   def update_changeset(user, attrs) do
     user
+    |> Macchinista.Repo.preload(:boards)
     |> cast(attrs, @update_fields)
     |> validate_required(@required_fields)
     |> validate_change(:email, &validate_email/2)
@@ -174,9 +182,9 @@ defmodule Macchinista.Accounts.User do
     |> put_password_hash
   end
 
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # Querying
-  #-----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   defmodule Query do
     @moduledoc false
     import Ecto.Query
@@ -184,7 +192,7 @@ defmodule Macchinista.Accounts.User do
     alias Ecto.Query
     alias Macchinista.Accounts.User
 
-    @spec by_email(String.t) :: Query.t
+    @spec by_email(String.t()) :: Query.t()
     def by_email(email) do
       from u in User,
         where: u.email == ^email,

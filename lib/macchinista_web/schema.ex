@@ -41,6 +41,7 @@ defmodule MacchinistaWeb.Schema do
     end
 
     field :board, :board do
+      arg(:id, non_null(:id))
       resolve(&BoardResolver.board/3)
     end
 
@@ -49,18 +50,22 @@ defmodule MacchinistaWeb.Schema do
     end
 
     field :card, :card do
+      arg(:id, non_null(:id))
       resolve(&CardResolver.card/3)
     end
 
     field :checklist, :checklist do
+      arg(:id, non_null(:id))
       resolve(&ChecklistResolver.checklist/3)
     end
 
     field :quest, :quest do
+      arg(:id, non_null(:id))
       resolve(&QuestResolver.quest/3)
     end
 
     field :tag, :tag do
+      arg(:id, non_null(:id))
       resolve(&TagResolver.tag/3)
     end
   end
@@ -71,7 +76,7 @@ defmodule MacchinistaWeb.Schema do
       resolve(&UserResolver.register_user/3)
     end
 
-    field :login, type: :session do
+    field :login, type: :string do
       arg(:input, non_null(:login_input))
       resolve(&SessionResolver.login/3)
     end

@@ -5,8 +5,10 @@ defmodule Macchinista.Accounts do
 
   import Ecto.Query, warn: false
   alias Macchinista.Repo
+  alias Macchinista.Accounts.{User, Session}
+  alias Session.Query, as: SessionQuery
 
-  alias Macchinista.Accounts.{ User, Session }
+  @token_secret Application.get_env(:macchinista, :token_secret)
 
   @doc """
   Returns the list of users.
@@ -35,6 +37,7 @@ defmodule Macchinista.Accounts do
       ** (Ecto.NoResultsError)
 
   """
+  def get_user(id), do: Repo.get(User, id)
   def get_user!(id), do: Repo.get!(User, id)
 
   def get_user_by_email(email), do: Repo.get_by(User, email: email)
@@ -52,19 +55,21 @@ defmodule Macchinista.Accounts do
 
   """
   def create_user(attrs \\ %{}) do
-    Repo.transaction fn ->
-      user =
+    Repo.transaction(fn ->
+      result =
         attrs
         |> User.create_changeset()
         |> Repo.insert()
-      case user do
-        {:ok, user } ->
-          #create_log(user, :user, :insert, :success, user)
-          {:ok, user}
+
+      case result do
+        {:ok, %User{} = user} ->
+          # create_log(user, :user, :insert, :success, user)
+          user
+
         {:error, _} ->
           Repo.rollback(:internal)
       end
-    end
+    end)
   end
 
   @doc """
@@ -101,29 +106,33 @@ defmodule Macchinista.Accounts do
     Repo.delete(user)
   end
 
-  def create_session(user) do
-    user
-    |> Session.create!
-    |> Session.create_changeset(%{user_id: user.id, active: true})
-    |> Repo.insert()
-  end
-
-  def inactivate_session(%Session{id: id}) do
-    Session
-    |> Repo.get!(id)
-    |> Session.inactivate()
-    |> Repo.update()
-  end
-
   def login(%{email: email, password: password}) do
-    with \
-      user <- get_user_by_email(email), \
-      true <- Bcrypt.verify_pass(password, user.password_hash) do
-      create_session(user)
+    with user <- get_user_by_email(email),
+         true <- Bcrypt.verify_pass(password, user.password_hash) do
+      IO.puts(@token_secret)
+      {:ok, Phoenix.Token.sign(@token_secret, "user", user.id)}
     else
       {:error, _} = response -> response
-      false -> {:error, "Invalid credentials"}
-      _ -> {:error, "Unknown Error"}
+      false -> {:error, :invalid_credentials}
+      _ -> {:error, :unknown_error}
     end
+  end
+
+  @spec validate_user(User.t() | nil) ::
+          {:ok, User.t()}
+          | {:error, :invalid_authorization_token}
+  defp validate_user(%User{} = user), do: {:ok, user}
+  defp validate_user(_), do: {:error, :invalid_authorization_token}
+
+  @spec authorize_user(Session.token()) ::
+          {:ok, User.t()}
+          | {:error, :invalid_authorization_token}
+  def authorize_user(token) do
+    token
+    |> SessionQuery.by_token()
+    |> Repo.one()
+    |> Session.get_user_id()
+    |> get_user()
+    |> validate_user()
   end
 end

@@ -18,8 +18,8 @@ defmodule MacchinistaWeb.Resolvers.Board do
     Cartello.create_board(args, user)
   end
 
-  def create_board(_parent, _args, _resolution),
-    do: {:error, :invalid_parameters}
+  def create_board(_parent, _args, _),
+    do: {:error, "Access Denied"}
 
   def update_board(_, %{id: id} = args, %{context: %{user_id: user_id}}) do
     {:ok, board} = Cartello.get_board(id)
@@ -28,10 +28,16 @@ defmodule MacchinistaWeb.Resolvers.Board do
     Cartello.update_board(board, Map.delete(args, :id), user)
   end
 
+  def update_board(_parent, _args, _),
+    do: {:error, "Access Denied"}
+
   def delete_board(_, %{id: id}, %{context: %{user_id: user_id}}) do
     {:ok, board} = Cartello.get_board(id)
     user = Accounts.get_user!(user_id)
 
     Cartello.delete_board(board, user)
   end
+
+  def delete_board(_parent, _args, _),
+    do: {:error, "Access Denied"}
 end
