@@ -7,11 +7,12 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
       add :name, :string, default: "Untitled Board"
       add :order, :integer, null: false
       add :background, :string
-      add :shelve, :boolean, default: :false
+      add :shelve, :boolean, default: false
       add :user_id, references(:users, type: :uuid)
 
       timestamps()
     end
+
     create unique_index(:boards, [:user_id, :order])
 
     create table(:tags, primary_key: false) do
@@ -31,19 +32,21 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
 
       timestamps()
     end
+
     create unique_index(:card_lists, [:board_id, :order])
 
     create table(:cards, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :name, :string, default: "Untitled Card"
       add :description, :string
-      add :shelve, :boolean, default: :false
+      add :shelve, :boolean, default: false
       add :order, :integer
-      add :parent, references(:cards, type: :uuid)
+      add :parent_id, references(:cards, type: :uuid)
       add :card_list_id, references(:card_lists, type: :uuid)
 
       timestamps()
     end
+
     create unique_index(:cards, [:card_list_id, :order])
 
     create table(:checklists, primary_key: false) do
@@ -54,6 +57,7 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
 
       timestamps()
     end
+
     create unique_index(:checklists, [:card_id, :order])
 
     create table(:quests, primary_key: false) do
@@ -65,6 +69,17 @@ defmodule Macchinista.Repo.Migrations.BootstrapBase do
 
       timestamps()
     end
+
     create unique_index(:quests, [:checklist_id, :order])
+
+    create table(:cards_tags, primary_key: false) do
+      add :id, :uuid, primary_key: true
+      add :card_id, references(:cards, column: :id, type: :uuid, on_delete: :delete_all)
+      add :tag_id, references(:tags, column: :id, type: :uuid, on_delete: :delete_all)
+    end
+
+    create index(:cards_tags, [:card_id])
+    create index(:cards_tags, [:tag_id])
+    create unique_index(:cards_tags, [:card_id, :tag_id], name: :card_id_tag_id_unique_index)
   end
 end

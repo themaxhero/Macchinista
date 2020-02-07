@@ -118,6 +118,16 @@ defmodule Macchinista.Accounts.User do
     |> put_change(:e, e)
   end
 
+  @spec get_boards(t) :: boards
+  def get_boards(%__MODULE__{boards: boards}), do: boards
+
+  @spec set_boards(t, boards) :: changeset
+  def set_boards(%__MODULE__{} = user, boards) do
+    user
+    |> change()
+    |> put_change(:boards, boards)
+  end
+
   @spec get_role(t) :: role
   def get_role(%__MODULE__{role: role}),
     do: role

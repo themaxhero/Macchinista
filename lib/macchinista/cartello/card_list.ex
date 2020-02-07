@@ -42,7 +42,7 @@ defmodule Macchinista.Cartello.CardList do
     field :name, :string
     field :order, :integer
     has_many :cards, Card
-    belongs_to :board, Board
+    belongs_to :board, Board, on_replace: :update
 
     timestamps()
   end
@@ -100,7 +100,7 @@ defmodule Macchinista.Cartello.CardList do
   def set_board(%__MODULE__{} = card_list, %Board{} = board) do
     card_list
     |> change()
-    |> put_change(:board, board)
+    |> put_change(:board_id, board.id)
   end
 
   @spec get_last_card(t) :: Card.t()
@@ -131,6 +131,7 @@ defmodule Macchinista.Cartello.CardList do
   @spec update_changeset(t, update_params) :: changeset
   def update_changeset(%__MODULE__{} = card_list, attrs) do
     card_list
+    |> Macchinista.Repo.preload(:cards)
     |> cast(attrs, @update_fields)
     |> validate_required(@required_fields)
   end
@@ -144,8 +145,7 @@ defmodule Macchinista.Cartello.CardList do
     import Ecto.Query
 
     alias Ecto.Query
-    alias Macchinista.Cartello.CardList
-    alias Macchinista.Cartello.Board
+    alias Macchinista.Cartello.{CardList, Board}
 
     @spec by_board_order(Board.t(), CardList.order()) :: Query.t()
     def by_board_order(%Board{id: board_id}, order) do

@@ -1,6 +1,4 @@
 defmodule Macchinista.Cartello do
-  import Ecto.Query, warn: false
-
   alias Macchinista.Repo
   alias Macchinista.Cartello.{Board, CardList, Card, Checklist, Tag, Quest}
   alias Card.Query, as: CardQuery
@@ -124,8 +122,11 @@ defmodule Macchinista.Cartello do
           | {:error, atom() | String.t()}
   def get_card_list(id) when is_binary(id) do
     case Repo.get(CardList, id) do
-      nil -> {:error, :not_found}
-      %CardList{} = card_list -> {:ok, card_list}
+      nil ->
+        {:error, :not_found}
+
+      %CardList{} = card_list ->
+        {:ok, Repo.preload(card_list, :cards)}
     end
   end
 
@@ -462,7 +463,10 @@ defmodule Macchinista.Cartello do
 
       order = new_position(to_order, last_order)
 
-      card = Card.set_order(card, order)
+      card =
+        card
+        |> Card.set_order(order)
+        |> Card.set_card_list(destination)
 
       from_cards =
         from
@@ -495,13 +499,15 @@ defmodule Macchinista.Cartello do
   @spec reorder_card(Card.t(), Card.order(), User.t()) ::
           {:ok, [Card.t()]}
           | {:error, atom() | String.t()}
-  def reorder_card(%Card{card_list: card_list, parent: nil} = card, order, _user) do
+  def reorder_card(%Card{id: id, card_list: card_list, parent: nil} = card, order, _user) do
     Repo.transaction(fn ->
       get_order = fn card ->
         if card != nil,
           do: Card.get_order(card),
           else: 0
       end
+
+      {:ok, card_list} = get_card_list(card_list.id)
 
       last_order =
         card_list
@@ -510,23 +516,35 @@ defmodule Macchinista.Cartello do
 
       order = new_position(order, last_order)
 
-      card = Card.set_order(card, order)
+      {:ok, card} = Repo.delete(card)
 
-      cards =
-        card_list
-        |> CardList.get_cards()
-        |> Enum.map(&Card.set_order(&1, &1.order + 1))
+      card = Card.update_changeset(card, %{order: order})
 
-      cards =
-        [card | cards]
-        |> Enum.reverse()
-        |> Enum.map(&Repo.update/1)
+      update_went_ok? = fn {status, card} ->
+        case status do
+          :ok -> card
+          :error -> Repo.rollback(:internal)
+        end
+      end
 
-      case Enum.find(cards, fn {status, _} -> status == :error end) do
-        nil ->
-          Enum.map(cards, fn {_, card} -> card end)
+      {:ok, cards} =
+        Repo.transaction(fn ->
+          card_list
+          |> CardList.get_cards()
+          |> Enum.filter(fn card -> card.id != id && card.order >= order end)
+          |> Enum.map(fn card ->
+            card
+            |> Card.update_changeset(%{order: card.order + 1})
+            |> Repo.update()
+            |> update_went_ok?.()
+          end)
+        end)
 
-        {:error, _changeset} ->
+      case Repo.insert(card) do
+        {:ok, card} ->
+          [card | cards]
+
+        _ ->
           Repo.rollback(:internal)
       end
     end)

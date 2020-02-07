@@ -1,8 +1,7 @@
 defmodule Macchinista.Cartello.Card do
   use Ecto.Schema
   import Ecto.Changeset
-
-  alias Macchinista.Cartello.{CardList, Checklist, Tag}
+  alias Macchinista.Cartello.{CardList, Checklist, Tag, CardTag}
 
   # -----------------------------------------------------------------------------
   # Setup
@@ -15,7 +14,7 @@ defmodule Macchinista.Cartello.Card do
   @type name :: String.t()
   @type description :: String.t()
   @type order :: integer()
-  @type parent :: String.t() | nil
+  @type parent :: t() | nil
   @type cards :: [Card.t()]
   @type card_list :: CardList.t()
   @type shelve :: boolean()
@@ -26,6 +25,7 @@ defmodule Macchinista.Cartello.Card do
           description: description,
           order: order,
           parent: parent,
+          card_id: String.t(),
           cards: cards,
           card_list: card_list,
           checklists: checklists,
@@ -46,23 +46,27 @@ defmodule Macchinista.Cartello.Card do
   @type update_params :: %{
           optional(:name) => name,
           optional(:description) => description,
-          optional(:parent) => parent
+          optional(:order) => order,
+          optional(:parent) => parent,
+          optional(:tags) => tags
         }
 
   @creation_fields ~w/name order/a
-  @update_fields ~w/name description parent/a
+  @update_fields ~w/name description order parent_id/a
   @required_fields ~w/card_list/a
+  @required_update_fields ~w//a
 
   schema "cards" do
     field :name, :string
     field :description, :string
     field :order, :integer
     field :shelve, :boolean
-    field :parent, :string
+    belongs_to :parent, __MODULE__
     has_many :cards, __MODULE__
+    field :card_id, Ecto.UUID, source: :parent_id
     has_many :checklists, Checklist
-    belongs_to :card_list, CardList
-    many_to_many :tags, Tag, join_through: "cards_tags", on_replace: :delete
+    belongs_to :card_list, CardList, references: :id, on_replace: :update
+    many_to_many :tags, Tag, join_through: CardTag
 
     timestamps()
   end
@@ -145,6 +149,13 @@ defmodule Macchinista.Cartello.Card do
   @spec get_card_list(t) :: CardList.t()
   def get_card_list(%__MODULE__{card_list: card_list}), do: card_list
 
+  @spec set_card_list(type_or_changeset, CardList.t()) :: changeset
+  def set_card_list(card, card_list) do
+    card
+    |> change
+    |> put_change(:card_list_id, card_list.id)
+  end
+
   @spec get_last_nested_card(t) :: t
   def get_last_nested_card(%__MODULE__{cards: cards}) do
     cards
@@ -170,19 +181,36 @@ defmodule Macchinista.Cartello.Card do
   @spec create_changeset(creation_params) :: changeset
   def create_changeset(%{card_list: card_list} = attrs) do
     %__MODULE__{}
+    |> Macchinista.Repo.preload(:parent)
     |> Macchinista.Repo.preload(:cards)
     |> Macchinista.Repo.preload(:checklists)
     |> Macchinista.Repo.preload(:tags)
     |> cast(attrs, @creation_fields)
     |> put_assoc(:card_list, card_list)
     |> validate_required(@required_fields)
+    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_index)
   end
 
   @spec update_changeset(t, update_params) :: changeset
   def update_changeset(card, attrs) do
+    card =
+      card
+      |> Macchinista.Repo.preload(:parent)
+      |> Macchinista.Repo.preload(:cards)
+      |> Macchinista.Repo.preload(:checklists)
+      |> Macchinista.Repo.preload(:tags)
+
+    tags =
+      if Map.has_key?(attrs, :tags),
+        do: attrs.tags ++ card.tags,
+        else: card.tags
+
     card
     |> cast(attrs, @update_fields)
-    |> validate_required(@required_fields)
+    |> put_assoc(:tags, tags)
+    |> validate_required(@required_update_fields)
+    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_index)
+    |> unique_constraint(:unique_tags, name: :card_id_tag_id_unique_index)
   end
 
   # -----------------------------------------------------------------------------
@@ -192,14 +220,19 @@ defmodule Macchinista.Cartello.Card do
     import Ecto.Query
 
     alias Ecto.Query
-    alias Macchinista.Cartello.Card
-    alias Macchinista.Cartello.CardList
+    alias Macchinista.Cartello.{Card, CardList, Tag}
 
     @spec by_card_list_and_order_gt(CardList.t(), Card.order()) :: Query.t()
     def by_card_list_and_order_gt(%CardList{id: id}, order) do
       from c in Card,
         where: c.card_list_id == ^id and c.order > ^order,
         select: c
+    end
+
+    def by_tags(%Tag{id: id}) do
+      Card
+      |> join(:inner, [c], r in "cards_tags", on: r.tag_id == ^id and r.card_id == c.id)
+      |> select([c, r], {r.tag_id, c})
     end
   end
 end

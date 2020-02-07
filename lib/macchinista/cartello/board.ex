@@ -2,7 +2,7 @@ defmodule Macchinista.Cartello.Board do
   use Ecto.Schema
   import Ecto.Changeset
   alias Ecto.Changeset
-  alias Macchinista.Cartello.CardList
+  alias Macchinista.Cartello.{CardList, Tag}
   alias Macchinista.Accounts.{User}
 
   # -----------------------------------------------------------------------------
@@ -18,6 +18,7 @@ defmodule Macchinista.Cartello.Board do
   @type order :: integer()
   @type card_lists :: [CardList.t()]
   @type user :: User.t()
+  @type tags :: [Tag.t()]
   @type users :: [User.t()]
   @type t :: %__MODULE__{
           name: name,
@@ -41,12 +42,13 @@ defmodule Macchinista.Cartello.Board do
   @type update_params :: %{
           optional(:name) => String.t(),
           optional(:background) => String.t(),
-          optional(:user) => User
+          optional(:user) => User,
+          optional(:tags) => Tags
         }
 
   @creation_fields ~w/name background order/a
-  @update_fields ~w/name background user order/a
-  @required_fields ~w/name background user order/a
+  @update_fields ~w/name background order/a
+  @required_fields ~w/name background order/a
 
   schema "boards" do
     field :name, :string
@@ -54,6 +56,7 @@ defmodule Macchinista.Cartello.Board do
     field :shelve, :boolean
     field :order, :integer
     has_many :card_lists, CardList
+    has_many :tags, Tag
     belongs_to :user, User
 
     timestamps()
@@ -91,6 +94,9 @@ defmodule Macchinista.Cartello.Board do
 
   @spec get_user(t) :: user
   def get_user(%__MODULE__{user: user}), do: user
+
+  @spec get_tags(t) :: tags
+  def get_tags(%__MODULE__{tags: tags}), do: tags
 
   @spec set_user(Board.t() | changeset, user) :: changeset
   def set_user(%Changeset{data: %__MODULE__{}} = changeset, user),
@@ -145,8 +151,15 @@ defmodule Macchinista.Cartello.Board do
 
   @spec update_changeset(type_or_changeset, update_params) :: changeset
   def update_changeset(%__MODULE__{} = board, attrs) do
+    put_assoc_if = fn board_changeset ->
+      if Map.has_key?(attrs, :user),
+        do: put_assoc(board_changeset, :user, attrs.user),
+        else: board_changeset
+    end
+
     board
     |> cast(attrs, @update_fields)
+    |> put_assoc_if.()
     |> generic_validations()
   end
 

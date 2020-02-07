@@ -9,6 +9,7 @@ defmodule Macchinista.Cartello.Checklist do
   # -----------------------------------------------------------------------------
 
   @primary_key {:id, Ecto.UUID, autogenerate: true}
+  @foreign_key_type Ecto.UUID
   @type changeset :: %Ecto.Changeset{data: %__MODULE__{}}
 
   @type name :: String.t()
@@ -26,7 +27,8 @@ defmodule Macchinista.Cartello.Checklist do
   @type type_or_changeset :: t | changeset
 
   @type creation_params :: %{
-          optional(:name) => name
+          optional(:name) => name,
+          required(:card) => card
         }
 
   @type update_params :: %{
@@ -118,9 +120,10 @@ defmodule Macchinista.Cartello.Checklist do
   # -----------------------------------------------------------------------------
 
   @spec create_changeset(creation_params) :: changeset
-  def create_changeset(attrs) do
+  def create_changeset(%{card: card} = attrs) do
     %__MODULE__{}
     |> cast(attrs, @creation_fields)
+    |> put_assoc(:card, card)
     |> validate_required(@required_fields)
   end
 

@@ -1,7 +1,7 @@
 defmodule Macchinista.Cartello.Tag do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Macchinista.Cartello.{Board, Card}
+  alias Macchinista.Cartello.{Board, Card, CardTag}
 
   # -----------------------------------------------------------------------------
   # Setup
@@ -44,7 +44,7 @@ defmodule Macchinista.Cartello.Tag do
     field :name, :string
     field :color, :string
     belongs_to :board, Board
-    many_to_many :cards, Card, join_through: "cards_tags", on_replace: :delete
+    many_to_many :cards, Card, join_through: CardTag
 
     timestamps()
   end
@@ -112,6 +112,7 @@ defmodule Macchinista.Cartello.Tag do
   @spec update_changeset(t, update_params) :: changeset
   def update_changeset(tag, attrs) do
     tag
+    |> Macchinista.Repo.preload(:cards)
     |> cast(attrs, @update_fields)
     |> validate_required(@required_fields)
   end
@@ -124,14 +125,19 @@ defmodule Macchinista.Cartello.Tag do
     import Ecto.Query
 
     alias Ecto.Query
-    alias Macchinista.Cartello.Tag
-    alias Macchinista.Cartello.Board
+    alias Macchinista.Cartello.{Tag, Board, Card}
 
     @spec by_board(Board.t()) :: Query.t()
     def by_board(%Board{id: id}) do
       from t in Tag,
         where: t.board_id == ^id,
         select: t
+    end
+
+    def by_card(%Card{id: id}) do
+      Tag
+      |> join(:inner, [t], r in "cards_tags", on: r.card_id == ^id and r.tag_id == t.id)
+      |> select([t, r], {r.card_id, t})
     end
   end
 end
