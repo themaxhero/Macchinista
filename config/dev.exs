@@ -3,7 +3,7 @@ use Mix.Config
 # Configure your database
 config :macchinista, Macchinista.Repo,
   username: "postgres",
-  password: "postgres",
+  password: "sa",
   database: "macchinista_dev",
   hostname: "localhost",
   show_sensitive_data_on_connection_error: true,
