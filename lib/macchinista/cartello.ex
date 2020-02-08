@@ -181,7 +181,8 @@ defmodule Macchinista.Cartello do
         {:ok, card} ->
           card
 
-        {:error, _changeset} ->
+        {:error, changeset} ->
+          IO.inspect(changeset)
           Repo.rollback(:internal)
       end
     end)
@@ -550,34 +551,47 @@ defmodule Macchinista.Cartello do
     end)
   end
 
-  def reorder_card(%Card{id: id, parent: parent_id, order: _from} = card, order, _user) do
+  def reorder_card(%Card{id: id, parent: parent, order: _from} = card, order, user) do
     Repo.transaction(fn ->
-      parent =
-        parent_id
-        |> Repo.get(Card)
+      {:ok, parent} = get_card(parent.id)
+
+      parent = Repo.preload(parent, :cards)
 
       last_order =
         parent
         |> Card.get_last_nested_card()
         |> Card.get_order()
 
-      order = new_position(order, last_order)
-      card = Card.set_order(card, order)
+      card =
+        card
+        |> Repo.preload(:cards)
+        |> Repo.preload(:checklists)
+        |> Repo.preload(:tags)
 
-      brothers =
+      {:ok, card} = delete_card(card, user)
+
+      order = new_position(order, last_order)
+
+      siblings =
         parent
         |> Card.get_cards()
-        |> Enum.filter(fn card -> card.order > order && card.id != id end)
-        |> Enum.map(&Card.set_order(&1, &1.order + 1))
+        |> Enum.filter(fn card -> card.order >= order && card.id != id end)
+        |> Enum.map(fn card ->
+          card
+          |> Card.set_order(card.order + 1)
+          |> Repo.update()
+        end)
 
-      cards =
-        [card | brothers]
-        |> Enum.reverse()
-        |> Enum.map(&Repo.update/1)
+      card_and_status =
+        card
+        |> Card.update_changeset(%{order: order})
+        |> Repo.insert()
+
+      cards = [card_and_status | siblings]
 
       case Enum.find(cards, fn {status, _} -> status == :error end) do
         nil ->
-          {:ok, Enum.map(cards, fn {_, card} -> card end)}
+          Enum.map(cards, fn {_, card} -> card end)
 
         {:error, _changeset} ->
           Repo.rollback(:internal)
@@ -603,7 +617,7 @@ defmodule Macchinista.Cartello do
 
       order = new_position(order, last_order)
 
-      brothers =
+      siblings =
         card
         |> Card.get_checklists()
         |> Enum.filter(fn checklist -> checklist.order > order end)
@@ -612,7 +626,7 @@ defmodule Macchinista.Cartello do
       checklist = Checklist.set_order(checklist, order)
 
       checklists =
-        [checklist | brothers]
+        [checklist | siblings]
         |> Enum.reverse()
         |> Enum.map(&Repo.update/1)
 
@@ -638,7 +652,7 @@ defmodule Macchinista.Cartello do
 
       order = new_position(order, last_order)
 
-      brothers =
+      siblings =
         checklist
         |> Checklist.get_quests()
         |> Enum.filter(fn quest -> quest.order > order end)
@@ -647,7 +661,7 @@ defmodule Macchinista.Cartello do
       quest = Quest.set_order(quest, order)
 
       quests =
-        [quest | brothers]
+        [quest | siblings]
         |> Enum.reverse()
         |> Enum.map(&Repo.update/1)
 

@@ -40,12 +40,14 @@ defmodule Macchinista.Cartello.Card do
           optional(:name) => name,
           optional(:parent) => parent,
           optional(:order) => order,
-          required(:card_list) => CardList.t()
+          required(:card_list) => CardList.t(),
+          optional(:parent) => parent
         }
 
   @type update_params :: %{
           optional(:name) => name,
           optional(:description) => description,
+          optional(:shelve) => shelve,
           optional(:order) => order,
           optional(:parent) => parent,
           optional(:tags) => tags
@@ -179,16 +181,21 @@ defmodule Macchinista.Cartello.Card do
   # -----------------------------------------------------------------------------
 
   @spec create_changeset(creation_params) :: changeset
+  def create_changeset(%{card_list: card_list, parent: parent} = attrs) do
+    %__MODULE__{}
+    |> cast(attrs, @creation_fields)
+    |> put_assoc(:card_list, card_list)
+    |> put_assoc(:parent, parent)
+    |> validate_required(@required_fields)
+    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_shelve_parent_id_index)
+  end
+
   def create_changeset(%{card_list: card_list} = attrs) do
     %__MODULE__{}
-    |> Macchinista.Repo.preload(:parent)
-    |> Macchinista.Repo.preload(:cards)
-    |> Macchinista.Repo.preload(:checklists)
-    |> Macchinista.Repo.preload(:tags)
     |> cast(attrs, @creation_fields)
     |> put_assoc(:card_list, card_list)
     |> validate_required(@required_fields)
-    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_index)
+    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_shelve_parent_id_index)
   end
 
   @spec update_changeset(t, update_params) :: changeset
@@ -209,7 +216,7 @@ defmodule Macchinista.Cartello.Card do
     |> cast(attrs, @update_fields)
     |> put_assoc(:tags, tags)
     |> validate_required(@required_update_fields)
-    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_index)
+    |> unique_constraint(:unique_cards, name: :cards_card_list_id_order_shelve_parent_id_index)
     |> unique_constraint(:unique_tags, name: :card_id_tag_id_unique_index)
   end
 

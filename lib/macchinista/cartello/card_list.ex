@@ -19,6 +19,7 @@ defmodule Macchinista.Cartello.CardList do
           name: name,
           order: order,
           cards: cards,
+          shelve: boolean(),
           board: board,
           inserted_at: NaiveDateTime.t(),
           updated_at: NaiveDateTime.t()
@@ -31,16 +32,18 @@ defmodule Macchinista.Cartello.CardList do
         }
 
   @type update_params :: %{
-          optional(:name) => name
+          optional(:name) => name,
+          optional(:shelve) => boolean()
         }
 
   @creation_fields ~w/name/a
-  @update_fields ~w/name/a
+  @update_fields ~w/name shelve/a
   @required_fields ~w/name board/a
 
   schema "card_lists" do
     field :name, :string
     field :order, :integer
+    field :shelve, :boolean, default: false
     has_many :cards, Card
     belongs_to :board, Board, on_replace: :update
 

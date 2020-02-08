@@ -108,6 +108,16 @@ defmodule Macchinista.Cartello.Board do
     |> put_change(:user, user)
   end
 
+  @spec get_card_lists(t) :: card_lists
+  def get_card_lists(%__MODULE__{card_lists: card_lists}), do: card_lists
+
+  @spec set_card_lists(t, card_lists) :: type_or_changeset
+  def set_card_lists(%__MODULE__{} = board, [%CardList{}] = card_lists) do
+    board
+    |> change()
+    |> put_change(:card_lists, card_lists)
+  end
+
   @spec get_last_card_list(t) :: CardList.t()
   def get_last_card_list(%__MODULE__{card_lists: card_lists}) do
     card_lists
