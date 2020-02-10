@@ -4,7 +4,7 @@ defmodule Macchinista.CartelloTest do
   alias Macchinista.Accounts
   alias Macchinista.Cartello
   alias Accounts.{User}
-  alias Cartello.{Board, Card, Checklist}
+  alias Cartello.{Board, Card, CardList, Checklist}
   alias Macchinista.Repo
 
   describe "Card" do
@@ -32,6 +32,7 @@ defmodule Macchinista.CartelloTest do
 
       card_list_creation_params = %{
         name: "Testing Card List",
+        order: 0,
         board: board
       }
 
@@ -39,6 +40,7 @@ defmodule Macchinista.CartelloTest do
 
       card_list_creation_params_2 = %{
         name: "Testing Card List 2",
+        order: 1,
         board: board
       }
 
@@ -279,6 +281,7 @@ defmodule Macchinista.CartelloTest do
 
       card_list_creation_params = %{
         name: "Testing Card List",
+        order: 0,
         board: board
       }
 
@@ -326,7 +329,34 @@ defmodule Macchinista.CartelloTest do
       assert checklist.name == "TODOS"
     end
 
-    test "Reordering" do
+    test "Reordering", %{card: card, checklist: checklist, user: user} do
+      checklist_2_creation_params = %{
+        card: card,
+        name: "other checklist",
+        order: 1
+      }
+
+      {:ok, checklist_2} = Cartello.create_checklist(checklist_2_creation_params, user)
+
+      {:ok, _checklists} = Cartello.reorder_checklist(checklist_2, 0, user)
+
+      {:ok, card} = Cartello.get_card(card.id)
+
+      checklists =
+        card
+        |> Repo.preload(:checklists)
+        |> Card.get_checklists()
+
+      checklist = Enum.find(checklists, fn q -> q.id == checklist.id end)
+      checklist_2 = Enum.find(checklists, fn q -> q.id == checklist_2.id end)
+
+      refute checklist == nil
+      refute checklist_2 == nil
+
+      assert checklist.order == 1
+      assert checklist_2.order == 0
+      assert checklist.card_id == card.id
+      assert checklist_2.card_id == card.id
     end
 
     test "Deleting", %{checklist: checklist, user: user} do
@@ -373,6 +403,7 @@ defmodule Macchinista.CartelloTest do
 
       card_list_creation_params = %{
         name: "Testing Card List",
+        order: 0,
         board: board
       }
 
@@ -395,6 +426,7 @@ defmodule Macchinista.CartelloTest do
 
       quest_creation_params = %{
         name: "Comprar Leite",
+        order: 0,
         checklist: checklist
       }
 
@@ -406,6 +438,7 @@ defmodule Macchinista.CartelloTest do
     test "Creating", %{user: user, checklist: checklist} do
       quest_creation_params = %{
         name: "Ir ao mercado",
+        order: 1,
         checklist: checklist
       }
 
@@ -439,7 +472,34 @@ defmodule Macchinista.CartelloTest do
       assert quest.name == "Comprar um elefante"
     end
 
-    test "Reordering" do
+    test "Reordering", %{quest: quest, user: user, checklist: checklist} do
+      quest_2_creation_params = %{
+        checklist: checklist,
+        name: "other quest",
+        order: 1
+      }
+
+      {:ok, quest_2} = Cartello.create_quest(quest_2_creation_params, user)
+
+      {:ok, _quests} = Cartello.reorder_quest(quest_2, 0, user)
+
+      {:ok, checklist} = Cartello.get_checklist(checklist.id)
+
+      quests =
+        checklist
+        |> Repo.preload(:quests)
+        |> Checklist.get_quests()
+
+      quest = Enum.find(quests, fn q -> q.id == quest.id end)
+      quest_2 = Enum.find(quests, fn q -> q.id == quest_2.id end)
+
+      refute quest == nil
+      refute quest_2 == nil
+
+      assert quest.order == 1
+      assert quest_2.order == 0
+      assert quest.checklist_id == checklist.id
+      assert quest_2.checklist_id == checklist.id
     end
 
     test "Deleting", %{checklist: checklist, quest: quest, user: user} do
@@ -490,6 +550,7 @@ defmodule Macchinista.CartelloTest do
 
       card_list_creation_params = %{
         name: "Backlog",
+        order: 0,
         board: board
       }
 
@@ -501,6 +562,7 @@ defmodule Macchinista.CartelloTest do
     test "Creating", %{user: user, board: board} do
       card_list_creation_params = %{
         name: "Doing",
+        order: 1,
         board: board
       }
 
@@ -521,7 +583,34 @@ defmodule Macchinista.CartelloTest do
       assert card_list.name == "Doing"
     end
 
-    test "Reordering" do
+    test "Reordering", %{card_list: card_list, board: board, user: user} do
+      card_list_2_creation_params = %{
+        board: board,
+        name: "other list",
+        order: 1
+      }
+
+      {:ok, card_list_2} = Cartello.create_card_list(card_list_2_creation_params, user)
+
+      {:ok, _card_lists} = Cartello.reorder_card_list(card_list_2, 0, user)
+
+      {:ok, board} = Cartello.get_board(board.id)
+
+      card_lists =
+        board
+        |> Repo.preload(:card_lists)
+        |> Board.get_card_lists()
+
+      card_list = Enum.find(card_lists, fn c -> c.id == card_list.id end)
+      card_list_2 = Enum.find(card_lists, fn c -> c.id == card_list_2.id end)
+
+      refute card_list == nil
+      refute card_list_2 == nil
+
+      assert card_list.order == 1
+      assert card_list_2.order == 0
+      assert card_list.board_id == board.id
+      assert card_list_2.board_id == board.id
     end
 
     test "Shelving", %{card_list: card_list, user: user} do
@@ -665,6 +754,7 @@ defmodule Macchinista.CartelloTest do
 
       card_list_creation_params = %{
         name: "Testing Card List",
+        order: 0,
         board: board
       }
 

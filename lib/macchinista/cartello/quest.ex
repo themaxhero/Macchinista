@@ -29,17 +29,19 @@ defmodule Macchinista.Cartello.Quest do
 
   @type creation_params :: %{
           optional(:name) => name,
+          required(:order) => order,
           required(:checklist) => checklist
         }
 
   @type update_params :: %{
           optional(:name) => name,
+          optional(:order) => order,
           optional(:checked) => checked
         }
 
-  @creation_fields ~w/name/a
-  @update_fields ~w/name checked/a
-  @required_fields ~w//a
+  @creation_fields ~w/name order/a
+  @update_fields ~w/name order checked/a
+  @required_fields ~w/order/a
 
   schema "quests" do
     field :name, :string
