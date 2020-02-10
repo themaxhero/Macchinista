@@ -24,7 +24,7 @@ defmodule Macchinista.Cartello.Board do
           name: name,
           background: background,
           card_lists: card_lists,
-          order: integer(),
+          order: order,
           user: user,
           shelve: boolean(),
           inserted_at: NaiveDateTime.t(),
@@ -35,15 +35,15 @@ defmodule Macchinista.Cartello.Board do
   @type creation_params :: %{
           optional(:name) => String.t(),
           optional(:background) => String.t(),
-          optional(:order) => integer(),
+          optional(:order) => order,
           required(:user) => User
         }
 
   @type update_params :: %{
           optional(:name) => String.t(),
           optional(:background) => String.t(),
-          optional(:user) => User,
-          optional(:tags) => Tags
+          optional(:user) => user,
+          optional(:tags) => tags
         }
 
   @creation_fields ~w/name background order/a
@@ -118,7 +118,7 @@ defmodule Macchinista.Cartello.Board do
     |> put_change(:card_lists, card_lists)
   end
 
-  @spec get_last_card_list(t) :: CardList.t()
+  @spec get_last_card_list(t) :: CardList.t() | nil
   def get_last_card_list(%__MODULE__{card_lists: card_lists}) do
     card_lists
     |> Enum.reverse()

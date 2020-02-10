@@ -28,15 +28,17 @@ defmodule Macchinista.Cartello.Checklist do
 
   @type creation_params :: %{
           optional(:name) => name,
+          required(:order) => order,
           required(:card) => card
         }
 
   @type update_params :: %{
-          optional(:name) => name
+          optional(:name) => name,
+          optional(:order) => order
         }
 
-  @creation_fields ~w/name/a
-  @update_fields ~w/name/a
+  @creation_fields ~w/name order/a
+  @update_fields ~w/name order/a
   @required_fields ~w/name/a
 
   schema "checklists" do
@@ -104,7 +106,7 @@ defmodule Macchinista.Cartello.Checklist do
     |> put_change(:card, card)
   end
 
-  @spec get_last_quest(t) :: Quest.t()
+  @spec get_last_quest(t) :: Quest.t() | nil
   def get_last_quest(%__MODULE__{quests: quests}) do
     quests
     |> Enum.reverse()
@@ -125,6 +127,7 @@ defmodule Macchinista.Cartello.Checklist do
     |> cast(attrs, @creation_fields)
     |> put_assoc(:card, card)
     |> validate_required(@required_fields)
+    |> unique_constraint(:unique_checklist, name: :checklists_card_id_order_index)
   end
 
   @spec update_changeset(Checklist.t(), update_params) :: changeset
@@ -132,6 +135,7 @@ defmodule Macchinista.Cartello.Checklist do
     checklist
     |> cast(attrs, @update_fields)
     |> validate_required(@required_fields)
+    |> unique_constraint(:unique_checklist, name: :checklists_card_id_order_index)
   end
 
   # -----------------------------------------------------------------------------

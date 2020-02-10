@@ -39,7 +39,7 @@ defmodule Macchinista.Cartello.Card do
   @type creation_params :: %{
           optional(:name) => name,
           optional(:parent) => parent,
-          optional(:order) => order,
+          required(:order) => order,
           required(:card_list) => CardList.t(),
           optional(:parent) => parent
         }
@@ -158,14 +158,14 @@ defmodule Macchinista.Cartello.Card do
     |> put_change(:card_list_id, card_list.id)
   end
 
-  @spec get_last_nested_card(t) :: t
+  @spec get_last_nested_card(t) :: t | nil
   def get_last_nested_card(%__MODULE__{cards: cards}) do
     cards
     |> Enum.reverse()
     |> List.first()
   end
 
-  @spec get_last_checklist(t) :: Checklist.t()
+  @spec get_last_checklist(t) :: Checklist.t() | nil
   def get_last_checklist(%__MODULE__{checklists: checklists}) do
     checklists
     |> Enum.reverse()

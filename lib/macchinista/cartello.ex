@@ -5,7 +5,7 @@ defmodule Macchinista.Cartello do
 
   @spec create_board(Board.creation_params(), User.t()) ::
           {:ok, Board.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def create_board(attrs, _user) do
     Repo.transaction(fn ->
       board =
@@ -27,7 +27,7 @@ defmodule Macchinista.Cartello do
 
   @spec get_board(Board.id()) ::
           {:ok, Board.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def get_board(id) when is_binary(id) do
     case Repo.get(Board, id) do
       nil -> {:error, :not_found}
@@ -50,9 +50,9 @@ defmodule Macchinista.Cartello do
           # create_log(board, :board, :update, :success, user)
           board
 
-        {:error, _changeset} ->
-          # create_log(board, :board, :update, :failed, user)
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          # create_log(board, :board, :update, :failed,changeset.errors)
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -73,9 +73,9 @@ defmodule Macchinista.Cartello do
           # create_log(board, :board, :update, :success, user)
           board
 
-        {:error, _changeset} ->
-          # create_log(board, :board, :update, :failed, user)
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          # create_log(board, :board, :update, :failed,changeset.errors)
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -90,18 +90,38 @@ defmodule Macchinista.Cartello do
           # create_log(board, :board, :delete, :success, user)
           board
 
-        {:error, _changeset} ->
-          # create_log(board, :board, :delete, :failed, user)
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          # create_log(board, :board, :delete, :failed,changeset.errors)
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec create_card_list(CardList.creation_paramsreation_params(), User.t()) ::
           {:ok, CardList.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t() | KeywordList.t()}
   def create_card_list(attrs, _user) do
     Repo.transaction(fn ->
+      get_order_if_exists = fn card_list ->
+        case card_list do
+          nil -> 0
+          %CardList{order: order} -> order + 1
+        end
+      end
+
+      {:ok, board} = get_board(attrs.board.id)
+
+      guessed_order =
+        board
+        |> Repo.preload(:card_lists)
+        |> Board.get_last_card_list()
+        |> get_order_if_exists.()
+
+      attrs =
+        if Map.has_key?(attrs, :order),
+          do: attrs,
+          else: Map.put(attrs, :order, guessed_order)
+
       card_list =
         attrs
         |> CardList.create_changeset()
@@ -111,15 +131,15 @@ defmodule Macchinista.Cartello do
         {:ok, card_list} ->
           card_list
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec get_card_list(CardList.id()) ::
           {:ok, CardList.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def get_card_list(id) when is_binary(id) do
     case Repo.get(CardList, id) do
       nil ->
@@ -144,8 +164,8 @@ defmodule Macchinista.Cartello do
         {:ok, card_list} ->
           card_list
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -161,17 +181,46 @@ defmodule Macchinista.Cartello do
         {:ok, card} ->
           card
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
-  @spec create_card(Card.creation_paramsreation_params(), User.t()) ::
+  @spec create_card(Card.creation_params(), User.t()) ::
           {:ok, Card.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def create_card(attrs, _user) do
     Repo.transaction(fn ->
+      get_order_if_exists = fn card ->
+        case card do
+          nil -> 0
+          %Card{order: order} -> order + 1
+        end
+      end
+
+      guessed_order =
+        if Map.has_key?(attrs, :parent) do
+          {:ok, parent} = get_card(attrs.parent.id)
+
+          parent
+          |> Repo.preload(:cards)
+          |> Card.get_last_nested_card()
+          |> get_order_if_exists.()
+        else
+          {:ok, card_list} = get_card_list(attrs.card_list.id)
+
+          card_list
+          |> Repo.preload(:cards)
+          |> CardList.get_last_card()
+          |> get_order_if_exists.()
+        end
+
+      attrs =
+        if Map.has_key?(attrs, :order),
+          do: attrs,
+          else: Map.put(attrs, :order, guessed_order)
+
       card =
         attrs
         |> Card.create_changeset()
@@ -182,15 +231,14 @@ defmodule Macchinista.Cartello do
           card
 
         {:error, changeset} ->
-          IO.inspect(changeset)
-          Repo.rollback(:internal)
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec get_card(Card.id()) ::
           {:ok, Card.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def get_card(id) when is_binary(id) do
     case Repo.get(Card, id) do
       nil -> {:error, :not_found}
@@ -212,8 +260,8 @@ defmodule Macchinista.Cartello do
         {:ok, card} ->
           card
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -227,17 +275,37 @@ defmodule Macchinista.Cartello do
         {:ok, card} ->
           card
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec create_checklist(Checklist.creation_params(), User.t()) ::
           {:ok, Checklist.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def create_checklist(attrs, _user) do
     Repo.transaction(fn ->
+      get_order_if_exists = fn checklist ->
+        case checklist do
+          nil -> 0
+          %Checklist{order: order} -> order + 1
+        end
+      end
+
+      {:ok, card} = get_card(attrs.card.id)
+
+      guessed_order =
+        card
+        |> Repo.preload(:checklists)
+        |> Card.get_last_checklist()
+        |> get_order_if_exists.()
+
+      attrs =
+        if Map.has_key?(attrs, :order),
+          do: attrs,
+          else: Map.put(attrs, :order, guessed_order)
+
       checklist =
         attrs
         |> Checklist.create_changeset()
@@ -247,15 +315,15 @@ defmodule Macchinista.Cartello do
         {:ok, checklist} ->
           checklist
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec get_checklist(Checklist.id()) ::
           {:ok, Checklist.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def get_checklist(id) when is_binary(id) do
     case Repo.get(Checklist, id) do
       nil -> {:error, :not_found}
@@ -277,8 +345,8 @@ defmodule Macchinista.Cartello do
         {:ok, checklist} ->
           checklist
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -292,15 +360,15 @@ defmodule Macchinista.Cartello do
         {:ok, checklist} ->
           checklist
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec create_tag(Tag.creation_params(), User.t()) ::
           {:ok, Tag.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def create_tag(attrs, _user) do
     Repo.transaction(fn ->
       tag =
@@ -312,15 +380,15 @@ defmodule Macchinista.Cartello do
         {:ok, tag} ->
           tag
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec get_tag(Tag.id()) ::
           {:ok, Tag.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def get_tag(id) when is_binary(id) do
     case Repo.get(Tag, id) do
       nil -> {:error, :not_found}
@@ -342,8 +410,8 @@ defmodule Macchinista.Cartello do
         {:ok, tag} ->
           tag
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -357,15 +425,15 @@ defmodule Macchinista.Cartello do
         {:ok, tag} ->
           tag
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec create_quest(Quest.creation_paramsreation_params(), User.t()) ::
           {:ok, Quest.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def create_quest(attrs, _user) do
     Repo.transaction(fn ->
       quest =
@@ -377,15 +445,15 @@ defmodule Macchinista.Cartello do
         {:ok, quest} ->
           quest
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
 
   @spec get_quest(Quest.id()) ::
           {:ok, Quest.t()}
-          | {:error, atom() | String.t()}
+          | {:error, atom() | String.t() | KeywordList.t()}
   def get_quest(id) when is_binary(id) do
     case Repo.get(Quest, id) do
       nil -> {:error, :not_found}
@@ -407,8 +475,8 @@ defmodule Macchinista.Cartello do
         {:ok, quest} ->
           quest
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -422,8 +490,8 @@ defmodule Macchinista.Cartello do
         {:ok, quest} ->
           quest
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -491,8 +559,8 @@ defmodule Macchinista.Cartello do
         nil ->
           Enum.map(cards, fn {_, card} -> card end)
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -593,8 +661,62 @@ defmodule Macchinista.Cartello do
         nil ->
           Enum.map(cards, fn {_, card} -> card end)
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
+      end
+    end)
+  end
+
+  @spec reorder_card_list(CardList.t(), CardList.order(), User.t()) ::
+          {:ok, [CardList.t()]}
+          | {:error, atom() | String.t()}
+  def reorder_card_list(
+        %CardList{id: id, board: board} = card_list,
+        order,
+        user
+      ) do
+    Repo.transaction(fn ->
+      {:ok, board} = get_board(board.id)
+
+      board = Repo.preload(board, :card_lists)
+
+      last_order =
+        board
+        |> Board.get_last_card_list()
+        |> CardList.get_order()
+
+      card_list =
+        card_list
+        |> Repo.preload(:board)
+        |> Repo.preload(:cards)
+
+      {:ok, card_list} = delete_card_list(card_list, user)
+
+      order = new_position(order, last_order)
+
+      siblings =
+        board
+        |> Board.get_card_lists()
+        |> Enum.filter(fn card_list -> card_list.order >= order && card_list.id != id end)
+        |> Enum.map(fn card_list ->
+          card_list
+          |> CardList.set_order(CardList.get_order(card_list) + 1)
+          |> Repo.update()
+        end)
+
+      card_list_and_status =
+        card_list
+        |> CardList.update_changeset(%{order: order})
+        |> Repo.insert()
+
+      cards = [card_list_and_status | siblings]
+
+      case Enum.find(cards, fn {status, _} -> status == :error end) do
+        nil ->
+          Enum.map(cards, fn {_, card} -> card end)
+
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -602,12 +724,17 @@ defmodule Macchinista.Cartello do
   @spec reorder_checklist(Checklist.t(), Checklist.order(), User.t()) ::
           {:ok, [Checklist.t()]}
           | {:error, atom() | String.t()}
-  def reorder_checklist(%Checklist{order: _from, card: card} = checklist, order, _user) do
+  def reorder_checklist(%Checklist{id: id, card: card} = checklist, order, user) do
     Repo.transaction(fn ->
+      {:ok, card} = get_card(card.id)
+
+      card = Repo.preload(card, :checklists)
+
       get_order = fn checklist ->
-        if checklist != nil,
-          do: Checklist.get_order(checklist),
-          else: 0
+        case checklist do
+          nil -> 0
+          %Checklist{order: order} -> order
+        end
       end
 
       last_order =
@@ -615,27 +742,38 @@ defmodule Macchinista.Cartello do
         |> Card.get_last_checklist()
         |> get_order.()
 
+      {:ok, checklist} =
+        checklist
+        |> Repo.preload(:quests)
+        |> Repo.preload(:card)
+        |> delete_checklist(user)
+
       order = new_position(order, last_order)
 
       siblings =
         card
         |> Card.get_checklists()
-        |> Enum.filter(fn checklist -> checklist.order > order end)
-        |> Enum.map(&Checklist.set_order(&1, &1.order + 1))
+        |> Enum.filter(fn checklist -> checklist.order >= order && checklist.id != id end)
+        |> Enum.map(fn checklist ->
+          checklist
+          |> Repo.preload(:card)
+          |> Checklist.set_order(Checklist.get_order(checklist) + 1)
+          |> Repo.update()
+        end)
 
-      checklist = Checklist.set_order(checklist, order)
+      checklist_and_status =
+        checklist
+        |> Checklist.update_changeset(%{order: order})
+        |> Repo.insert()
 
-      checklists =
-        [checklist | siblings]
-        |> Enum.reverse()
-        |> Enum.map(&Repo.update/1)
+      checklists = [checklist_and_status | siblings]
 
       case Enum.find(checklists, fn {status, _} -> status == :error end) do
         nil ->
           Enum.map(checklists, fn {_, checklist} -> checklist end)
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -643,35 +781,52 @@ defmodule Macchinista.Cartello do
   @spec reorder_quest(Quest.t(), Quest.order(), User.t()) ::
           {:ok, [Quest.t()]}
           | {:error, atom() | String.t()}
-  def reorder_quest(%Quest{checklist: checklist} = quest, order, _user) do
+  def reorder_quest(%Quest{id: id, checklist: checklist} = quest, order, user) do
     Repo.transaction(fn ->
+      get_order = fn quest ->
+        case quest do
+          nil -> 0
+          %Quest{order: order} -> order
+        end
+      end
+
       last_order =
         checklist
+        |> Repo.preload(:quests)
         |> Checklist.get_last_quest()
-        |> Quest.get_order()
+        |> get_order.()
+
+      {:ok, quest} =
+        quest
+        |> Repo.preload(:checklist)
+        |> delete_checklist(user)
 
       order = new_position(order, last_order)
 
       siblings =
         checklist
+        |> Repo.preload(:quests)
         |> Checklist.get_quests()
-        |> Enum.filter(fn quest -> quest.order > order end)
-        |> Enum.map(&Quest.set_order(&1, &1.order + 1))
+        |> Enum.filter(fn quest -> quest.order >= order && quest.id != id end)
+        |> Enum.map(fn quest ->
+          quest
+          |> Quest.set_order(Quest.get_order(quest) + 1)
+          |> Repo.update()
+        end)
 
-      quest = Quest.set_order(quest, order)
+      quest_and_status =
+        quest
+        |> Quest.update_changeset(%{order: order})
+        |> Repo.insert()
 
-      quests =
-        [quest | siblings]
-        |> Enum.reverse()
-        |> Enum.map(&Repo.update/1)
+      quests = [quest_and_status | siblings]
 
       case Enum.find(quests, fn {status, _} -> status == :error end) do
         nil ->
           Enum.map(quests, fn {_, quest} -> quest end)
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
-          {:error, :internal}
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -715,8 +870,8 @@ defmodule Macchinista.Cartello do
             nil ->
               Enum.map(updated_cards, fn {_, card} -> card end)
 
-            {:error, _changeset} ->
-              Repo.rollback(:internal)
+            {:error, changeset} ->
+              Repo.rollback(changeset.errors)
           end
 
         _ ->
@@ -766,8 +921,8 @@ defmodule Macchinista.Cartello do
         nil ->
           return.()
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -811,8 +966,8 @@ defmodule Macchinista.Cartello do
         nil ->
           return.()
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end
@@ -831,8 +986,8 @@ defmodule Macchinista.Cartello do
         {:ok, card} ->
           card
 
-        {:error, _changeset} ->
-          Repo.rollback(:internal)
+        {:error, changeset} ->
+          Repo.rollback(changeset.errors)
       end
     end)
   end

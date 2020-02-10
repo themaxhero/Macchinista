@@ -28,17 +28,19 @@ defmodule Macchinista.Cartello.CardList do
 
   @type creation_params :: %{
           optional(:name) => name,
+          required(:order) => order,
           required(:board) => board
         }
 
   @type update_params :: %{
           optional(:name) => name,
-          optional(:shelve) => boolean()
+          optional(:shelve) => boolean(),
+          optional(:order) => order
         }
 
-  @creation_fields ~w/name/a
-  @update_fields ~w/name shelve/a
-  @required_fields ~w/name board/a
+  @creation_fields ~w/name order/a
+  @update_fields ~w/name shelve order/a
+  @required_fields ~w/board order/a
 
   schema "card_lists" do
     field :name, :string
@@ -129,6 +131,7 @@ defmodule Macchinista.Cartello.CardList do
     |> cast(attrs, @creation_fields)
     |> put_assoc(:board, board)
     |> validate_required(@required_fields)
+    |> unique_constraint(:unique_card_lists, name: :card_lists_board_id_order_shelve_index)
   end
 
   @spec update_changeset(t, update_params) :: changeset
@@ -137,6 +140,7 @@ defmodule Macchinista.Cartello.CardList do
     |> Macchinista.Repo.preload(:cards)
     |> cast(attrs, @update_fields)
     |> validate_required(@required_fields)
+    |> unique_constraint(:unique_card_lists, name: :card_lists_board_id_order_shelve_index)
   end
 
   # -----------------------------------------------------------------------------
