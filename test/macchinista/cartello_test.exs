@@ -4,7 +4,7 @@ defmodule Macchinista.CartelloTest do
   alias Macchinista.Accounts
   alias Macchinista.Cartello
   alias Accounts.{User}
-  alias Cartello.{Board, Card, CardList, Checklist}
+  alias Cartello.{Board, Card, Checklist}
   alias Macchinista.Repo
 
   describe "Card" do
