@@ -816,6 +816,7 @@ defmodule Macchinista.Cartello do
 
       quest_and_status =
         quest
+        |> Repo.preload(:checklist)
         |> Quest.update_changeset(%{order: order})
         |> Repo.insert()
 
